@@ -1,0 +1,72 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+void record_maker(char* array, int size);
+void print_array(char* array, int size);
+
+int main() { 
+	char array1[120];
+	char array2[120];
+	char array3[120];
+	char array4[120];
+	char array5[120];
+	char array6[120];
+	char array7[120];
+	char array8[120];
+	char array9[120];
+	char array10[120];
+	
+	record_maker(array1, 120);
+	record_maker(array2, 120);
+	record_maker(array3, 120);
+	record_maker(array4, 120);
+	record_maker(array5, 120);
+	record_maker(array6, 120);
+	record_maker(array7, 120);
+	record_maker(array8, 120);
+	record_maker(array9, 120);
+	record_maker(array10, 120);
+	
+	int i;
+	for (i = 0; i < 10; i++) {
+		FILE* fp = fopen("records.txt", "a");
+		fwrite(array1, sizeof(char), sizeof(array1), fp);
+		fwrite(array2, sizeof(char), sizeof(array2), fp);
+		fwrite(array3, sizeof(char), sizeof(array3), fp);
+		fwrite(array4, sizeof(char), sizeof(array4), fp);
+		fwrite(array5, sizeof(char), sizeof(array5), fp);
+		fwrite(array6, sizeof(char), sizeof(array6), fp);
+		fwrite(array7, sizeof(char), sizeof(array7), fp);
+		fwrite(array8, sizeof(char), sizeof(array8), fp);
+		fwrite(array9, sizeof(char), sizeof(array9), fp);
+		fwrite(array10, sizeof(char), sizeof(array10), fp);
+		int rand2 = rand() % 9 + 1; 
+		switch (rand2) {
+		
+		case 1: fread(array1, sizeof(char), sizeof(array1), fp); 
+		}
+		fclose(fp);
+	}
+}
+
+void record_maker(char* array, int size) {
+	char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
+	int i;
+	srand(time(NULL));
+	int rnd = rand() % 26;
+	for (i = 0; i < size; i++) {
+		array[i] = alphabet[rnd];
+		rnd = rand() % 26;
+	}
+}
+	
+void print_array(char* array, int size) {
+	int i;
+	for (i = 0; i < size  ; i++) {
+		printf("index : %d is %c\n", i, array[i]);
+	}
+} 
