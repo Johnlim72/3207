@@ -15,6 +15,10 @@ int main() {
 		printf("I am in child process\n");
        	        printf("Before exec (seconds): %d\n", (int)tv.tv_sec);
 	        printf("Before exec (microseconds): %d \n", (int)tv.tv_usec);
+		
+		FILE* fp2 = fopen("times1.csv", "a");
+		fprintf(fp2, "%d, %d\n", tv.tv_sec, tv.tv_usec);
+		fclose(fp2); 
 
 		execlp("./Application.out", "./Application.out", NULL);
 		printf("This will not be printed if the exec call succeeds\n");
