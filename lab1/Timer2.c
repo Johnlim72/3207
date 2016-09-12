@@ -31,14 +31,15 @@ int main() {
 		
 		if (pid2 == 0) { // 2nd child process
 			printf("I am in second child process\n");
+			gettimeofday(&tv2, NULL);
 			
-			FILE* fp3 = fopen("times2.csv", "a");
-                	fprintf(fp3, "%d, %d\n", tv2.tv_sec, tv2.tv_usec);
-        	        fclose(fp3);
-			gettimeofday(&tv2, NULL);	
 			printf("Before second exec (seconds): %d\n", (int)tv2.tv_sec);
 			printf("Before second exec (microseconds): %d\n", (int)tv2.tv_usec);
 			
+			FILE* fp3 = fopen("times2.csv", "a");
+			fprintf(fp3, "%d, %d\n", tv2.tv_sec, tv2.tv_usec);
+			fclose(fp3);
+	
 			execlp("./Application.out", "./Application.out", NULL);
 			printf("This will not be printed if the exec call succeeds");
 		} else { //parent process

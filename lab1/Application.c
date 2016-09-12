@@ -16,7 +16,7 @@ int main() {
  	printf("Application start time (microseconds): %d\n", tv.tv_usec);
 	
 	FILE *fp2 = fopen("times1.csv", "a");
-	fprintf(fp2, "%d, %d\n", tv.tv_sec, tv.tv_usec);
+	fprintf(fp2, "%d, %d\n\n", tv.tv_sec, tv.tv_usec);
 	fclose(fp2);
 	 
 	char array1[120];

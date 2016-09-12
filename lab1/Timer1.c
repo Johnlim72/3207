@@ -6,6 +6,8 @@
 #include <sys/wait.h>
 
 int main() {
+	int i;
+	for (i = 1; i <= 100; i++) {
 	
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -27,4 +29,5 @@ int main() {
 		waitpid(pid, NULL, 0);
 	}
 	printf("End of current process\n");
+}
 }
