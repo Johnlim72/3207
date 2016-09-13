@@ -22,9 +22,9 @@ int main() {
        	        printf("Before first exec (seconds): %d\n", (int)tv1.tv_sec);
 	        printf("Before first exec (microseconds): %d \n", (int)tv1.tv_usec);
 		
-		//FILE* fp3 = fopen("times2.csv", "a");
-		//fprintf(fp3, "%d, %d\n", tv1.tv_sec, tv1.tv_usec);
-		//fclose(fp3);
+		FILE* fp3 = fopen("times2.csv", "a");
+		fprintf(fp3, "%d, %d\n", tv1.tv_sec, tv1.tv_usec);
+		fclose(fp3);
 
 		execlp("./Application.out", "./Application.out", NULL);
 		printf("This will not be printed if the exec call succeeds\n");
