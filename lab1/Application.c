@@ -6,17 +6,16 @@
 #include <sys/wait.h>
 
 void record_maker(char* array, int size);
-void print_array(char* array, int size);
 void compare(char* array, FILE* fp, int rand2);
 
 int main() {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	printf("Application start time (seconds): %d\n", tv.tv_sec);
- 	printf("Application start time (microseconds): %d\n", tv.tv_usec);
+	printf("Application start time (seconds): %d\n", (int)tv.tv_sec);
+ 	printf("Application start time (microseconds): %d\n", (int)tv.tv_usec);
 	
 	FILE *fp2 = fopen("apptimes2.csv", "a");
-	fprintf(fp2, "%d, %d\n", tv.tv_sec, tv.tv_usec);
+	fprintf(fp2, "%d, %d\n", (int)tv.tv_sec, (int)tv.tv_usec);
 	fclose(fp2);
 	 
 	char array1[120];
@@ -34,19 +33,19 @@ int main() {
 	int iterate;
 	for ( iterate = 1; iterate <= 5; iterate++) {
 
-	record_maker(array1, 120);
-	record_maker(array2, 120);
-	record_maker(array3, 120);
-	record_maker(array4, 120);
-	record_maker(array5, 120);
-	record_maker(array6, 120);
-	record_maker(array7, 120);
-	record_maker(array8, 120);
-	record_maker(array9, 120);
-	record_maker(array10, 120);
-	
-	int i;
-	
+		//fills in 10 arrays each with 120 random characters
+		record_maker(array1, 120);
+		record_maker(array2, 120);
+		record_maker(array3, 120);
+		record_maker(array4, 120);
+		record_maker(array5, 120);
+		record_maker(array6, 120);
+		record_maker(array7, 120);
+		record_maker(array8, 120);
+		record_maker(array9, 120);
+		record_maker(array10, 120);
+
+		//writes the 10 records into a file	
 		FILE* fp = fopen("records.txt", "w");
 		fwrite(array1, sizeof(char), sizeof(array1), fp);
 		fwrite(array2, sizeof(char), sizeof(array2), fp);
@@ -60,8 +59,9 @@ int main() {
 		fwrite(array10, sizeof(char), sizeof(array10), fp);
 		fclose(fp);
 		
+		/*Picks a number from 1-10. Depending on which number is chosen, the corresponding
+		array will be chosen to be compared to the characters in the file "records.txt"*/
 		int rand2 = rand() % 9 +1;
-		//printf("%d is the random number\n\n", rand2);
 		char* arrayToCom;
 		if (rand2 == 1) {
 			arrayToCom = array1;
@@ -87,12 +87,14 @@ int main() {
 				
 		compare(arrayToCom, fp, rand2);
 		sleep(1);
-		printf("iteration %d..prints %c\n", iterate, array1[0]);
-		fclose(fp);
+		printf("Iteration %d..prints %c\n", iterate, array1[0]);
+		remove("records.txt");	
 	}
+	
 	printf("Done\n");
 }
 
+//fills in an array with random characters from the alphabet
 void record_maker(char* array, int size) {
 	char alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 	int i;
@@ -103,24 +105,16 @@ void record_maker(char* array, int size) {
 		rnd = rand() % 26;
 	}
 }
-	
-void print_array(char* array, int size) {
-	int i;
-	for (i = 0; i < size  ; i++) {
-		printf("index : %d is %c\n", i, array[i]);
-	}
-} 
 
+//compares the characters of an array to the characters at the position where the array was written in the file to see if the characters are the same. 
 void compare(char* array, FILE* fp, int rand2) {
 	fopen("records.txt", "r");
 	fseek(fp, ((rand2-1)*120), SEEK_SET);
 	int i;
 	int c = fgetc(fp);
 	for (i =0; i <120; i++) {
-		//printf("array[i] = %c\n", array[i]);
-		//printf("c = %c\n", c);
-		if (array[i] == c) {
-			//printf("%d number is %c\n", i+1, array[i]);
+		if (array[i] == c) {			
+		
 		} else {
 			break;
 		}

@@ -1,0 +1,248 @@
+int my_cd(char **args); //use chdir to change directory
+void my_clr(); //clears screen by using system("clear")
+void my_dir(); //uses ls to list contents of directory
+void my_environ(); // uses getenv() to list environment variables
+void my_echo(char **args); // uses printf to print to display comment
+void my_help(); //opens text file that includes user manual
+void my_pause(); //wait for the user to press "enter"
+void my_quit(); //uses exit() to quit shell
+
+char **parse(char* str); /*returns the array of strings including the command and parameters. Seperates each
+                                string  by looking for whitespace. Puts NULL at the end of the array*/
+int exec_norm(char* str) //execution when there is simply just execution (no &, <, >, | symbols);
+int exec_bg(char* str) //execution when there is background execution (&)
+int exec_redir(char* str) //exuection when there is input/output redirection (<, >)
+int exec_pipe(char* str) //execution when there is a pipe (|)
+
+int main() {
+        while (1) {
+				//prints prompt
+                char* currentdir = gethostname();
+                print(currentdir + ">");
+				
+				//declare a string and get command line
+                char str[1024];
+                gets(str);
+				
+				
+				//if user types in "exit", shell will terminate
+                if str equals "exit" {
+                        break;
+                }
+				
+				//interate through each character in str and find out what kind of execution process is going to be used
+                while (get character doesn't equal NULL) {
+                        if (character equals new line character or enter) {
+                                exec_norm();
+                        } else if (character = &) {
+                                exec_bg();
+                        } else if (character = < or >) {
+                                exec_redir();
+                        } else if (character = |) {
+                                exec_pipe();
+                        }
+        }
+		return 0;
+}
+
+/*returns the array of strings including the command and parameters. Seperates each
+string  by looking for whitespace. Puts NULL at the end of the array*/
+char **parse(char *str) {
+		//declare an array of string
+        char **args = malloc(1024 *sizeof(char*));
+        int i =0;
+        char *arg;
+		
+		//seperate strings by whitespace, tab or enter symbols
+		arg = strtok(str, "  \t\n");
+		
+        while (arg != NULL) {
+                args[i] = arg;
+				arg = strtok(NULL, "  \t\n");
+                i++;
+        }
+		args[i] = NULL;
+		
+		return args;
+}
+
+//execution when there is simply just execution (no &, <, >, | symbols);
+int exec_norm(str) {
+		//declare an array of string that includes parsed string
+        char** args = parse(str);
+        
+		//declare a string that will take in command string
+		char* command = args[0];
+		
+		//declare an array of string that will take in parameters of the command
+        char** parameters;
+		int i =0;
+		int j =1;
+		while (parameters != NULL) {
+			parameters[i] = args[j];
+			i++;
+			j++;
+		}
+		parameters[i] = NULL;
+
+		//fork and execute command in the child process
+        pid_pid = fork();
+        if (pid==0) {
+                execvp(command, parameters);
+        } else {
+                waitpid(0);
+        }
+		return 0;
+}
+
+//execution when there is background execution (&)
+int exec_bg(str) {
+		//declare an array of string that includes parsed string
+        char** args = parse(str);
+		
+		//declare a string that will take in command string
+        char* command = args[0];
+		
+		//declare an array of string that will take in parameters of the command
+		char **parameters;
+		int i =0;
+		int j =1;
+        while (parameters != NULL) {
+			parameters[i] = args[j];
+			i++;
+			j++;
+		}
+		parameters[i] = NULL;
+		
+		/*fork and execute command in the child process, but doesnt wait for child process to finish.
+			this is to execute command in the background */
+        pid_pid = fork();
+        if (pid==0) {
+                execvp(command, parameters);
+        }
+		return 0;
+}
+
+//execution when there is input/output redirection (<, >)
+int exec_redir(str) {	
+		//declare an array of string that includes parsed string
+         char** args = parse(str);	
+		 
+		//declare a string that will take in command string
+         char* command = args[0];   
+		 
+		 //declare an array of string that will take in parameters of the command
+         char **parameters;			
+		 int i =1;
+		 int j =0;
+		 int k =0;
+		 int input_count=0;
+		 int output_count =0;
+		 
+		 while (args[i] != < || args[i] != >) {         /*copies the parameters of the command from args
+			parameters[j] = args[i];
+			i++; 
+			j++;
+		 }
+		parameters[j] = NULL;
+	
+		while (args[k] != NULL) {                   /*checks to see there is input AND output redirection in args
+			if (args[k] == <) {
+				input_count++;
+			} else if (args[k] == >) {
+				output_count++;
+			}
+			k++;
+		 }
+		 
+		 if (input_count == output_count == 1) {     //execution for when there is input AND output redirection 
+			pid_t pid = fork();
+				if (pid == 0) {
+						int fd_in = open(arg[i+1], O_RDONLY);
+						int fd_out = open(arg[i+3], O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IRWXO);
+						close(fd_in, 1);
+						close(fd_out, 0);
+						dup2(fd_in, 0);
+						dup2(fd_out, 1);
+						execvp(command_parameters);
+						close(fd_in);
+						close(fd_out);
+				} else {
+					waitpid(0);
+				}
+				return 0;
+		 }
+		 
+		 if (args[i] == <) { // execution when there is only input redirection
+				pid_t pid= fork();
+					if (pid == 0) {
+						int fd = open(arg[i+1], O_RDONLY); // opens text file for input
+						close(fd, 1);
+						dup2(fd, 0);
+						execvp(command, parameters);
+						close(fd);
+					} else {
+						waitpid(0);
+					}		
+         } else if (args[i] == >) { //execution when there is only output redirection
+				pid_t pid = fork();
+					if (pid == 0) {
+						int fd = open(arg[i+1], O_WRONLY|O_CREAT,S_IRWXU|S_IRWXG|S_IRWXO);
+						close(fd, 0);
+						dup2(fd, 1);
+						execvp(command, parameters);
+						close(fd);
+					} else {
+						waitpid(0);
+					}
+		 }
+		 return 0;
+}
+
+//execution when there is a pipe (|)
+int exec_pipe(str) {
+	//declare an array of string that includes parsed string
+	char **args = parse(str);
+	
+	//declare a string that will take in command string
+	char *command1=args[0];
+	
+	//declare the array of string for the parameters of first command and the parameters of the second command
+	char** parameters1;
+	char** parameters2;
+	int j =1;
+	int i = 0;
+	while (args[j] != |) {
+			parameters1[i] = args[j];
+			j++;
+			i++;
+		}
+	parameters1[i] = NULL;
+	j++;
+	int k =0;
+	char* command2 = args[j];
+	while (args[j] != NULL) {
+		parameters2[k] = args[j];
+		k++;
+		j++;	
+	}
+	parameters2[k] = NULL;
+	
+	
+	//pipe, fork, then execute first command in the child process and the second command in the parent process.
+	int fd[2];
+	pipe(pipefd);
+	pid_t pid = fork();
+	
+	if (pid == 0) { 
+		dup2(fd[0], 0);
+		close(fd[1]);
+		execvp(command1, parameters1);
+	} else {
+		dup2(fd[1], 1);
+		close(fd[0]);
+		execvp(command2, parameters2);	
+	}
+	return 0;	
+}
+
