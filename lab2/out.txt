@@ -1,4 +1,7 @@
+check builtin
+a.out
 ExampleCodes
+in.txt
 myshell
 myshell2.c
 myshell.c
