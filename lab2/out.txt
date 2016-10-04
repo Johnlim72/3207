@@ -1,9 +1,12 @@
 check builtin
-a.out
+batchfile
 ExampleCodes
 in.txt
 myshell
 myshell2.c
 myshell.c
+out2.txt
+out3.txt
 out.txt
 pseudo.txt
+todo.txt

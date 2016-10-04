@@ -1,0 +1,6 @@
+ls
+ls -a > out.txt
+wc < in.txt > out2.txt
+ls &
+environ >> out3.txt
+quit

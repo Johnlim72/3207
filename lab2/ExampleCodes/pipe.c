@@ -6,13 +6,17 @@ int main() {
 	int pid = fork();
 	if  (pid == 0) {
 		dup2(pipefd[0], 0); //input wil be replaced by pipefd[0].
+		close(pipefd[1]);
 		char str[100];
 		gets(str);
-		printf("This is in child process, reading from the pipe: \n");
+		execvp("wc", "wc");
 		printf("%s\n", str);
 	} else {
 		dup2(pipefd[1], 1); //output will be replace by pipefd[1].
-		printf("This is something from the parent process\n"); //write to pipe
+		close(pipefd[0]);
+		execvp("ls", "ls");
+		wait(NULL);
 	}
+	printf("hi");
 	return 0;
 }

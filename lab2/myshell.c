@@ -1,137 +1,138 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/wait.h>
-#include <string.h>
-#include <stdlib.h>
 #include <dirent.h>
+#include <fcntl.h>
 
+void prompt(char *str);
+void check_exec(char *str);
 char **parse(char *str);
 int exec_norm(char *str);
 int exec_bg(char* str);
 int exec_redir(char *str);
 int exec_pipe(char *str);
 int check_builtins(char** args, char *str);
-void prompt(char *str);
 
-int main() {
-	char str[1024];
-	prompt(str);
-	while (1) {
-		//Quits the shell.
-		if (strcmp(str, "quit") == 0) {
-			exit(0);
-		}		
-		
-		int i =0;
-		while (str[i] != '\0') {
-			if (str[i+1] == '\0') {
-				printf("normal exec\n");
-				if (exec_norm(str) != 0) {
-					printf("error in exec_norm\n");
-				}
-				break;
-			} else if (str[strlen(str)-1] == '&') {
-				printf("background exec\n");
-				if (exec_bg(str) != 0) {
-					printf("error in exec_bg\n");
-				}
-				break;
-			} else if ((str[i] == '>') || (str[i] == '<')) {
-				printf("redir exec\n");
-				if (exec_redir(str) != 0) {
-					printf("error in exec_redir\n");
-				}
-				break;
-			} else if (str[i] == '|') {
-				printf("pipe exec\n");
-				 if (exec_pipe(str) != 0) {
-					printf("error in exec_pipe\n");
-				} 
-				break;		
+int main(int args, char* argv[]) {
+	//Checks if there is a batchfile with list of commands.
+	if (argv[1] != NULL) {
+		if (strcmp(argv[1], "batchfile") == 0) {
+			FILE *fp = fopen(argv[1], "r"); //Opens batchfile.
+			if (fp == NULL) {
+				printf("error opening batchfile.\n");
+				return 0;	
 			}
-			i++;
-		}
-	prompt(str);
-	}	
-	return 0;
+			char str[1024];
+			while (fgets(str, 1024, fp)) { //Goes through each line of the batchfile.
+				printf("str: %s", str);
+				if (str[strlen(str)-1] == '\n') { //In order to execute commands (need null character at end of command). 
+					str[strlen(str)-1] = '\0';
+				}
+				if (strcmp(str, "quit") == 0) { //Quits the shell.
+					exit(0);
+				} 
+				check_exec(str); //Checks which kind of execution will be run, then executes command.
+			}
+			fclose(fp);
+		}	
+	} else { //No batchfile; Execute commands by input from user.
+		char str[1024];
+		while (1) {
+			prompt(str); //Prints prompt.
+
+			if (strcmp(str, "quit") == 0) { //Quits the shell.
+				exit(0);
+			}		
+			check_exec(str); //Checks which kind of execution will be run, then executes command.
+		}	
+		return 0;
+	}
 }
 
-void prompt(char *str) {
+void prompt(char *str) { //Prints prompt.
 	char currentDir[1024];
-	getcwd(currentDir, sizeof(currentDir));
+	getcwd(currentDir, sizeof(currentDir)); //Gets current directory.
 	printf("%s>", currentDir);
-	gets(str);
+	gets(str); //Gets input from user.
 }
 
-char **parse(char *str) {
+void check_exec(char *str) { //Checks which kind of execution will be run, then executes command.
+	int i =0;
+	while (str[i] != '\0') {
+		if (str[i+1] == '\0') { //Executes command (no &, <, >, >>, | arguments);
+			if (exec_norm(str) != 0) {
+				printf("error in exec_norm\n");
+			}
+			break;
+		} else if (str[strlen(str)-1] == '&') { //Executes command in background.
+			if (exec_bg(str) != 0) {
+				printf("error in exec_bg\n");
+			}
+			break;
+		} else if ((str[i] == '>') || (str[i] == '<')) { //Executes command with redirection.
+			if (exec_redir(str) != 0) {
+				printf("error in exec_redir\n");
+			}		
+			break;
+		} else if (str[i] == '|') { //Execute commands with pipe.
+			if (exec_pipe(str) != 0) {
+				printf("error in exec_pipe\n");
+			}	 
+			break;		
+		}
+		i++;
+	}
+}
+
+char **parse(char *str) { //Returns array of string of the string seperated by whitespace/tab character/new line character.
 	char **args = malloc(1024 * sizeof(char*));
 	int i=0;
 	char *arg;
-
 	arg = strtok(str, "  \t\n");
-	while (arg != NULL) {
+	while ((arg != NULL) && (strcmp(arg, "&")) != 0) {
 		args[i] = arg;
 		arg = strtok(NULL, "  \t\n");
-		i++;	}
+		i++;	
+	}
 	args[i] = NULL;
 	return args;
-}  
-
-int exec_norm(char *str) {
+}
+  
+int exec_norm(char *str) { //Executes command (no &, <, >, >>, | arguments);
 	char **args = parse(str);
-	char* path = args[0];
-	char *parameters[20];
-	
-	int i=0;
-	while (args[i] != NULL) {
-		parameters[i] = args[i];
-		i++;
-	}
-	parameters[i] = NULL;
-	
-	if (check_builtins(args,str) == 0) {
+	if (check_builtins(args, str) == 0) {
 		return 0;
 	}
-	pid_t pid = fork();
+	int pid = fork();
 	if (pid == 0) {
-		if (execvp(path, parameters) != 0) {
-			printf("error in executing\n");
+		if (execvp(args[0], args) != 0) {
+			printf("error in executing command\n");
 			exit(0); // so you dont need mult quits to quit
 		}
 	} else {
-		waitpid(pid, NULL, 0);
+		wait(NULL);
 	}
 	return 0;
 }
 
-int exec_bg(char *str) {
-	char **args = parse(str);
-        char* path = args[0];
-        char *parameters[20];
-
-        int i=0;
-        while (args[i][0] != '&' ) {
-                parameters[i] = args[i];
-		i++;
-        }
-        parameters[i] = NULL;
-
+int exec_bg(char *str) { //Executes command in background.
+	char **args = parse(str);	
 	if (check_builtins(args, str) == 0) {
 		return 0;
-	}
-	
-        pid_t pid = fork();
+	}	
+        int pid = fork();
         if (pid == 0) {
-               	if (execvp(path, parameters) != 0) {
+               	if (execvp(args[0], args) != 0) {
 			printf("error in executing in background\n");
 			exit(0);
 		}
         } 
         return 0;
-}
+} 
 
 int exec_redir(char *str) {
 	
@@ -207,7 +208,7 @@ int exec_redir(char *str) {
 			int fd = open(args[i+1], O_WRONLY|O_CREAT|O_APPEND,S_IRWXU|S_IRWXG|S_IRWXO);
 			dup2(fd, 1);
 			if (check_builtins(args, str) == 0) {
-				
+								
 			} else if (execvp(path, parameters) != 0) {
                                 printf("error in executing using redirection\ninput_count: 2, output_count: 0\n");	
 				exit(0);
@@ -236,7 +237,7 @@ int exec_redir(char *str) {
 			int fd = open(args[i+1], O_WRONLY|O_CREAT|O_TRUNC,S_IRWXU|S_IRWXG|S_IRWXO);
 			dup2(fd, 1);
 			if (check_builtins(args, str) == 0) {
-								
+							
 			}
 			 if (execvp(path, parameters) != 0) {
                                 printf("error in executing using redirection\ninput_count: 0, output_count: 1\n");
@@ -285,19 +286,13 @@ int exec_pipe(char* str) {
 			exit(0);
 		}
 	} else {
-		int pid2 = fork();
-		if (pid2 == 0) {
-			dup2(fd[1], 1);
-			close(fd[0]);
-			if (execvp(path1, parameters1) != 0) {
-				printf("error in parent, executing with pipe\n");
-				exit(0);
-			}
-		} else {
-			waitpid(pid2,NULL,0);
-		}
-		waitpid(pid, NULL, 0);
-	}
+		dup2(fd[1], 1);
+		close(fd[0]);
+		if (execvp(path1, parameters1) != 0) {
+			printf("error in parent, executing with pipe\n");
+			exit(0);
+		}		
+	}	
 	return 0;
 }
 
