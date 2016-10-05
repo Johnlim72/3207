@@ -36,6 +36,7 @@ int main(int args, char* argv[]) {
 					exit(0);
 				} 
 				check_exec(str); //Checks which kind of execution will be run, then executes command.
+		
 			}
 			fclose(fp);
 		}	
@@ -47,10 +48,11 @@ int main(int args, char* argv[]) {
 			if (strcmp(str, "quit") == 0) { //Quits the shell.
 				exit(0);
 			}		
-			check_exec(str); //Checks which kind of execution will be run, then executes command.
-		}	
-		return 0;
+			check_exec(str);//Checks which kind of execution will be run, then executes command.
+				
+		}
 	}
+	return 0;
 }
 
 void prompt(char *str) { //Prints prompt.
@@ -63,22 +65,26 @@ void prompt(char *str) { //Prints prompt.
 void check_exec(char *str) { //Checks which kind of execution will be run, then executes command.
 	int i =0;
 	while (str[i] != '\0') {
-		if (str[i+1] == '\0') { //Executes command (no &, <, >, >>, | arguments);
+		if ((i == strlen(str) -1) && (str[i+1] == '\0')) { //Executes command (no &, <, >, >>, | arguments);
+		//	printf("normal exec\n");
 			if (exec_norm(str) != 0) {
 				printf("error in exec_norm\n");
 			}
 			break;
 		} else if (str[strlen(str)-1] == '&') { //Executes command in background.
+		//	printf("background exec\n");
 			if (exec_bg(str) != 0) {
 				printf("error in exec_bg\n");
 			}
 			break;
 		} else if ((str[i] == '>') || (str[i] == '<')) { //Executes command with redirection.
+		//	printf("redirection exec\n");
 			if (exec_redir(str) != 0) {
 				printf("error in exec_redir\n");
 			}		
 			break;
 		} else if (str[i] == '|') { //Execute commands with pipe.
+		//	printf("pipe exec\n");
 			if (exec_pipe(str) != 0) {
 				printf("error in exec_pipe\n");
 			}	 
@@ -101,17 +107,17 @@ char **parse(char *str) { //Returns array of string of the string seperated by w
 	args[i] = NULL;
 	return args;
 }
-  
+
 int exec_norm(char *str) { //Executes command (no &, <, >, >>, | arguments);
-	char **args = parse(str);
-	if (check_builtins(args, str) == 0) {
+	char **args = parse(str); 
+	if (check_builtins(args, str) == 0) { //Checks for builtin commands.
 		return 0;
 	}
 	int pid = fork();
 	if (pid == 0) {
-		if (execvp(args[0], args) != 0) {
+		if (execvp(args[0], args) != 0) { //Executes command.
 			printf("error in executing command\n");
-			exit(0); // so you dont need mult quits to quit
+			exit(0); 
 		}
 	} else {
 		wait(NULL);
@@ -120,13 +126,13 @@ int exec_norm(char *str) { //Executes command (no &, <, >, >>, | arguments);
 }
 
 int exec_bg(char *str) { //Executes command in background.
-	char **args = parse(str);	
-	if (check_builtins(args, str) == 0) {
+	char **args = parse(str); 
+	if (check_builtins(args, str) == 0) { //Checks for builtin commands.
 		return 0;
 	}	
         int pid = fork();
         if (pid == 0) {
-               	if (execvp(args[0], args) != 0) {
+               	if (execvp(args[0], args) != 0) { //Executes command.
 			printf("error in executing in background\n");
 			exit(0);
 		}
@@ -135,7 +141,6 @@ int exec_bg(char *str) { //Executes command in background.
 } 
 
 int exec_redir(char *str) {
-	
 	char** args = parse(str);
 	char* path = args[0];
 	char *parameters[20];
@@ -169,7 +174,7 @@ int exec_redir(char *str) {
 	}
 
 	printf("input: %d, output: %d\n", input_count, output_count);
-	 if (input_count == output_count == 1) {     
+	 if ((input_count == output_count) == 1) {     
 		pid_t pid = fork();
 		if (pid == 0) {
 			int fd_in = open(args[i+1], O_RDONLY);
@@ -244,7 +249,6 @@ int exec_redir(char *str) {
 				exit(0);	
 			}
 			close(fd);
-			exit(0);
 		} else {
 			waitpid(pid, NULL, 0);
 		}
@@ -279,50 +283,61 @@ int exec_pipe(char* str) {
 	pipe(fd);
 	int pid = fork();
 	if (pid == 0) {
-		dup2(fd[0], 0);
-		close(fd[1]);
-		if (execvp(path2, parameters2) != 0) {
-			printf("error in child, executing with pipe\n");
-			exit(0);
-		}
-	} else {
 		dup2(fd[1], 1);
 		close(fd[0]);
+		close(fd[1]);
+		if (check_builtins(parameters1, str) == 0) {			
+		}	
 		if (execvp(path1, parameters1) != 0) {
-			printf("error in parent, executing with pipe\n");
-			exit(0);
-		}		
-	}	
+				printf("error in executing first func in exec_pipe\n");
+				exit(0);
+			} 
+	} else {
+		pid = fork();
+		if (pid == 0) {
+			dup2(fd[0], 0);
+			close(fd[0]);
+			close(fd[1]);
+			if (check_builtins(parameters2, str) == 0) {
+			}
+			if (execvp(path2, parameters2) != 0) {
+				printf("error in executing second func in exec_pipe\n");
+				exit(0);
+			}
+		} 
+	}
+	close(fd[0]);
+	close(fd[1]);
 	return 0;
 }
 
 
-int check_builtins(char **args, char* str) {
-	printf("check builtin\n");
-	if (args[0] == NULL) {
-		return 0;
+int check_builtins(char **args, char* str) { //Checks for builtin commands, then executes builtin command if called.
+	if (args[0] == NULL) { 
+		return -1;
 	}
-	if (strcmp(args[0], "cd") == 0) { //cd : change directory
+	if (strcmp(args[0], "cd") == 0) { //cd - Changes directory.
 		if(args[1] == NULL) {
 			printf("error in cd exec: no arg provided.\n");
-			return 0;
+			return -1;
 		} else {
 			if (chdir(args[1]) != 0) {
 				printf("error in cd exec\n");
+				return -1;
 			}
 		}
 		return 0;	
-	} else if (strcmp(args[0], "clr") == 0) {
+	} else if (strcmp(args[0], "clr") == 0) { //clr - Clears screen.
 		system("clear");
 		return 0;
-	} else if (strcmp(args[0], "dir") == 0) {
+	} else if (strcmp(args[0], "dir") == 0) { //dir - Lists contents of the given directory.
 		DIR *dp;
 		struct dirent *list;
 		char path[1024];
 		strcpy(path, args[1]);
 		if (args[1] == NULL) {
 			printf("error in dir exec: no path provided.\n");
-			return 0;
+			return -1;
 		} else {
 			if ((dp = opendir(path)) == NULL) {
 				printf("opendir %s error", path);
@@ -333,12 +348,12 @@ int check_builtins(char **args, char* str) {
 			closedir(dp);
 		}
 		return 0;
-	} else if (strcmp(args[0], "environ") == 0) {
+	} else if (strcmp(args[0], "environ") == 0) { //environ - Lists environment variable.
 		system("printenv");	
 		return 0;
-	} else if (strcmp(args[0], "echo") ==0) {
-		char echo_string[1024];
-		int i=0;
+	} else if (strcmp(args[0], "echo") == 0) { //echo - Displays a comment followed by new line character.
+		char *echo_string = malloc(sizeof(char*) * 1024);
+		int i = 0;
 		while (args[i] != NULL) {
 			strcat(echo_string,args[i]);
 			strcat(echo_string," ");
@@ -347,10 +362,13 @@ int check_builtins(char **args, char* str) {
 		system(echo_string);
 		strcpy(echo_string, "");
 		return 0;
-	} else if (strcmp(args[0], "pause") == 0) {
+	} else if (strcmp(args[0], "help") == 0) { //help - Displays the user manual.
+		//put help code here
+	
+	} else if (strcmp(args[0], "pause") == 0) { //pause - Stops operation of shell until 'Enter' is pressed.
 		char c;
 		printf("Operation paused. Press enter to continue.\n");
-		while (c = getchar() != '\n') {
+		while ((c = getchar()) != '\n') {
 		}
 		return 0;
 	}	

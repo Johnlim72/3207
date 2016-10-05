@@ -1,5 +1,3 @@
-Pipe function terminates program
 Redirection for echo, help
-Put in check builtin for pipe exec
-batchfile
-is batchfile supposed to end without 'quit' as a command in the file? or is it supposed to keep running for user input?
+ask about help
+

@@ -1,6 +1,11 @@
 ls
-ls -a > out.txt
-wc < in.txt > out2.txt
+ls -a > a.txt
+wc < in.txt > a2.txt
+echo $PATH > a5.txt
+ls | wc
 ls &
-environ >> out3.txt
+environ >> a3.txt
+dir . >> a4.txt
+cd ..
+dir .
 quit
