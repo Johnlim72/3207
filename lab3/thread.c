@@ -14,7 +14,7 @@ int sig1_sent = 0;
 int sig2_sent = 0;
 int sig1_rec = 0;
 int sig2_rec = 0;
-sem_t sem1, sem2, sem3, sem4;
+sem_t sem1, sem2, sem3, sem4, sem5;
 int total_signal_count = 0;
 sigset_t set1, set2;
 
@@ -23,29 +23,31 @@ int main() {
 	sem_init(&sem2, 0, 1);
 	sem_init(&sem3, 0, 1);
 	sem_init(&sem4, 0, 1);
+	sem_init(&sem5, 0, 1);
+
 	int i;
 
-	for(i = 0; i < 3; i++) {
-		if (pthread_create(&threads[i], NULL, generator, NULL) != 0) {
-			printf("error pthread_create generator\n");	
-		}
-		printf("created generator thread #%d\n", i);
-	}
-	
 	for(i = 3; i < 5; i++) {
 		if (pthread_create(&threads[i], NULL, handler1, NULL) != 0) {
 			printf("error pthread_create handler1\n");
 		}
 		printf("created handler1 threads #%d\n", i);
 	}
-
+	sleep(1);
 	for(i = 5; i < 7; i++) {
 		if (pthread_create(&threads[i], NULL, handler2, NULL) != 0) {
 			printf("error pthread_create handler2\n");
 		}
 		printf("created handler2 threads #%d\n", i);
 	}
-
+	sleep(1);
+	for(i = 0; i < 3; i++) {
+		if (pthread_create(&threads[i], NULL, generator, NULL) != 0) {
+			printf("error pthread_create generator\n");	
+		}
+		printf("created generator thread #%d\n", i);
+	}
+	sleep(1);
 	if (pthread_create(&threads[7], NULL, reporter, NULL) != 0) {
 		printf("error pthread_create reporter\n");
 	}
@@ -60,8 +62,9 @@ int main() {
 
 void* generator() {
 	printf("in generator function\n");
+	printf("total_signal_count = %d\n", total_signal_count);
 	srand(time(NULL));
-	while(total_signal_count < 10) {
+	while(total_signal_count < 2) {
 		int r = (rand() % 2) +1;
 		if (r == 1) {
 			int i;
@@ -94,15 +97,15 @@ void* generator() {
 				} else {
 					printf("]thread_kill sig2 to rep success\n");
 				}	*/
-				sem_wait(&sem1);
+				sem_wait(&sem2);
 				sig2_sent++;
-				sem_post(&sem1);
+				sem_post(&sem2);
 				printf("sig2sent = %d\n", sig2_sent);
 			}
 		}
-	sem_wait(&sem2);
+	sem_wait(&sem5);
 	total_signal_count++;
-	sem_post(&sem2);
+	sem_post(&sem5);
 	double rand_time = (double)(((rand() % 91) + 10) /1000);
 	sleep(1);
 	}
@@ -111,7 +114,7 @@ void* generator() {
 
 void* handler1() {
 	struct timespec timeout;
-	timeout.tv_sec = 5;
+	timeout.tv_sec = 2;
 	timeout.tv_nsec = 0;
 
 	sigemptyset(&set1);
@@ -119,24 +122,25 @@ void* handler1() {
 		printf("error sigaddset handler1\n");
 	}
 	pthread_sigmask(SIG_BLOCK, &set1, NULL);
- 
+ 	int s;
 	while (1) {
-		if (sigtimedwait(&set1, NULL, &timeout) != 0 ) {
-			printf("in sigtimedwait handler 1\n");
+		if ((s = sigtimedwait(&set1, NULL, &timeout)) > 0) {
 			sem_wait(&sem3);
 			sig1_rec++;
 			sem_post(&sem3);
 			printf("sig1_rec = %d\n", sig1_rec);
-		} else {
+		} else if (s == -1) {
 			break;
 		}
 	}
+	
+	//pthread_sigmask(SIG_UNBLOCK, &set1, NULL);	
 	pthread_exit(NULL);
 }
 
 void* handler2() {
 	struct timespec timeout;
-	timeout.tv_sec = 5;
+	timeout.tv_sec = 2;
 	timeout.tv_nsec = 0;
 	
 	sigemptyset(&set2);
@@ -144,18 +148,18 @@ void* handler2() {
 		printf("error sigaddset handler2\n");
  	}
 	pthread_sigmask(SIG_BLOCK, &set2, NULL);
-
+	int s;
 	while (1) {
-		if (sigtimedwait(&set2, NULL, &timeout) != 0 ) {
-			printf("in sigtimedwait handler 2\n");
+		if ((s = sigtimedwait(&set2, NULL, &timeout)) >  0) {
 			sem_wait(&sem4);
 			sig2_rec++;
 			sem_post(&sem4);
 			printf("sig2_rec = %d\n", sig2_rec);
-		} else {
+		} else if (s == -1) {
 			break;
 		}
 	}
+	//pthread_sigmask(SIG_UNBLOCK, &set2, NULL);
 	pthread_exit(NULL);
 }
 
