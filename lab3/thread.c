@@ -27,48 +27,50 @@ int main() {
 
 	int i;
 
-	for(i = 3; i < 5; i++) {
+	for(i = 0; i < 2; i++) {
 		if (pthread_create(&threads[i], NULL, handler1, NULL) != 0) {
 			printf("error pthread_create handler1\n");
 		}
 		printf("created handler1 threads #%d\n", i);
 	}
-	sleep(1);
-	for(i = 5; i < 7; i++) {
+
+	for(i = 2; i < 4; i++) {
 		if (pthread_create(&threads[i], NULL, handler2, NULL) != 0) {
 			printf("error pthread_create handler2\n");
 		}
 		printf("created handler2 threads #%d\n", i);
 	}
-	sleep(1);
-	for(i = 0; i < 3; i++) {
+
+	for(i = 4; i < 7; i++) {
 		if (pthread_create(&threads[i], NULL, generator, NULL) != 0) {
 			printf("error pthread_create generator\n");	
 		}
 		printf("created generator thread #%d\n", i);
 	}
-	sleep(1);
+
+	/*
 	if (pthread_create(&threads[7], NULL, reporter, NULL) != 0) {
 		printf("error pthread_create reporter\n");
 	}
-
-	for(i=0; i < 8; i++) {
-		pthread_join(threads[i], NULL);
-	}
-	
 	printf("created reporter threads\n");
+*/
+	for(i=0; i < 7; i++) { //change after reporter threads made
+		pthread_join(threads[i], NULL);
+	} 
+
+	printf("\nsigs sent = %d\n", sig1_sent + sig2_sent);
+	printf("sigs rec = %d\n", sig1_rec + sig2_rec);
 	return 0;
 }
 
 void* generator() {
-	printf("in generator function\n");
 	printf("total_signal_count = %d\n", total_signal_count);
 	srand(time(NULL));
-	while(total_signal_count < 2) {
+	while(total_signal_count < 10) {
 		int r = (rand() % 2) +1;
 		if (r == 1) {
 			int i;
-			for (i =3; i<5; i++) {
+			for (i =0; i<2; i++) {
 				if (pthread_kill(threads[i], SIGUSR1) != 0) {
 					printf("pthread_kill sig1 to handler error\n");
 				} else {
@@ -84,9 +86,10 @@ void* generator() {
 				sem_post(&sem1);
 				printf("sig1sent = %d\n", sig1_sent);
 			}
-		} else if (r == 2) {
+		}
+		if (r == 2) {
 			int i;
-			for (i =5; i<7; i++) {
+			for (i =2; i<4; i++) {
 				if (pthread_kill(threads[i], SIGUSR2) != 0) {
 					printf("pthread_kill sig2 to handler error\n");
 				} else {
@@ -109,12 +112,11 @@ void* generator() {
 	double rand_time = (double)(((rand() % 91) + 10) /1000);
 	sleep(1);
 	}
-	pthread_exit(NULL);
 }
 
 void* handler1() {
 	struct timespec timeout;
-	timeout.tv_sec = 2;
+	timeout.tv_sec = 10;
 	timeout.tv_nsec = 0;
 
 	sigemptyset(&set1);
@@ -134,13 +136,13 @@ void* handler1() {
 		}
 	}
 	
-	//pthread_sigmask(SIG_UNBLOCK, &set1, NULL);	
+	pthread_sigmask(SIG_UNBLOCK, &set1, NULL);	
 	pthread_exit(NULL);
 }
 
 void* handler2() {
 	struct timespec timeout;
-	timeout.tv_sec = 2;
+	timeout.tv_sec = 10;
 	timeout.tv_nsec = 0;
 	
 	sigemptyset(&set2);
@@ -159,7 +161,7 @@ void* handler2() {
 			break;
 		}
 	}
-	//pthread_sigmask(SIG_UNBLOCK, &set2, NULL);
+	pthread_sigmask(SIG_UNBLOCK, &set2, NULL);
 	pthread_exit(NULL);
 }
 
