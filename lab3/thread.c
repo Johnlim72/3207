@@ -6,17 +6,17 @@
 #include <signal.h>
 
 pthread_t threads[8]; //Makes an array of 8 thread IDs.
-int total_signal_count = 0;
+int total_signal_count = 0; //Total signals sent by generator.
 
 void* generator(); //Sends an amount of signals to handler and reporter threads.
 void delay(); //Delay for .01 to .1 seconds.
 void* handler1(); //Handles SIGUSR1 signals sent by generator threads.
 void* handler2(); //Handles SIGUSR2 signals sent by generator threads.
-void* reporter(); //Handles SIGUSR1 and SIGUSR2; reports average time in between each signal type recieved.
+void* reporter(); //Handles SIGUSR1 and SIGUSR2 signals send by generator threads; reports average time in between each signal type recieved.
 
-int reporter_sigs = 0; //Total signals recieved by reporter.
-int sig1_sent = 0; //Total SIGUSR1 signals sent by generator.
-int sig2_sent = 0; //Total SIGUSR2 signals sent by generator.
+int reporter_sigs = 0; //Total signals recieved by reporter from generator.
+int sig1_sent = 0; //Total SIGUSR1 signals sent by generator to handler1 threads.
+int sig2_sent = 0; //Total SIGUSR2 signals sent by generator to handler2 threads.
 int sig1_rec = 0; //Total SIGUSR1 signals recieved by handler1.
 int sig2_rec = 0; //Total SIGUSR2 signals recieved by handler2.
 
@@ -74,30 +74,30 @@ int main() {
 //Sends an amount of signals to handler and reporter threads.
 void* generator() {
 	while(total_signal_count < 1000) { 
-		int r = (rand() % 2) +1;
-		if (r == 1) {
+		int r = (rand() % 2) +1; //Chooses random number, either 1 or 2.
+		if (r == 1) { //If random number equals 1, SIGUSR1 will be sent to handler1 threads.
 			int i;
-			for (i =0; i<2; i++) {
+			for (i =0; i<2; i++) { //Sends SIGUSR1 to handler1 threads.
 				pthread_kill(threads[i], SIGUSR1); 
 				pthread_mutex_lock(&sem1);
-				sig1_sent++;
+				sig1_sent++; //Increment total SIGUSR1 signals sent.
 				pthread_mutex_unlock(&sem1);
 			}	
-			pthread_kill(threads[7], SIGUSR1);
+			pthread_kill(threads[7], SIGUSR1); //Sends SIGUSR1 to reporter thread.
 		}
-		if (r == 2) {
+		if (r == 2) { //If random number equals 2, SIGUSR2 will be sent to handler2 threads.
 			int i;
-			for (i =2; i<4; i++) {
+			for (i =2; i<4; i++) { //Sends SIGUSR2 to handler2 threads.
 				pthread_kill(threads[i], SIGUSR2);
 				pthread_mutex_lock(&sem2);
-				sig2_sent++;
+				sig2_sent++; //Increment total SIGUSR2 signals sent.
 				pthread_mutex_unlock(&sem2);
-				}
-			pthread_kill(threads[7], SIGUSR2);
+			}
+			pthread_kill(threads[7], SIGUSR2); //Sends SIGUSR2 to reporter thread.
 		}	
 
 	pthread_mutex_lock(&sem5);
-	total_signal_count++;
+	total_signal_count++; //Increments total signals sent by generator thread (total_signal_count).
 	pthread_mutex_unlock(&sem5);
 	
 	delay();
@@ -128,7 +128,7 @@ void* handler1() {
 	while (1) {
 		if ((s = sigtimedwait(&set1, NULL, &timeout)) > 0) {
 			pthread_mutex_lock(&sem3);
-			sig1_rec++;
+			sig1_rec++; //Increment total SIGUSR1 signals recieved by handler1 threads.
 			pthread_mutex_unlock(&sem3);
 		} else if (s == -1) {
 			break;
@@ -150,7 +150,7 @@ void* handler2() {
 	while (1) {
 		if ((s = sigtimedwait(&set2, NULL, &timeout)) > 0) {
 			pthread_mutex_lock(&sem4);
-			sig2_rec++;
+			sig2_rec++; //Increment total SIGUSR2 signals received by handler2 threads.
 			pthread_mutex_unlock(&sem4);
 		} else if (s == -1) {
 			break;
@@ -158,24 +158,24 @@ void* handler2() {
 	}
 }
 
+//Handles SIGUSR1 and SIGUSR2 signals sent by generator threads; reports average time in between each signal type recieved.
 void* reporter() {
 	struct timespec timeout;
 	timeout.tv_sec = 3;
 	timeout.tv_nsec = 0;
 	
 	struct timeval tv1;
-	unsigned int times1[10]; //times for sigusr1	
-	unsigned int times2[10]; //times for sigusr2
+	unsigned int times1[10]; //Time stamps for SIGUSR1.	
+	unsigned int times2[10]; //Time stamps for SIGUSR2.
 
 	sigemptyset(&set3);
 	sigaddset(&set3, SIGUSR1);
 	sigaddset(&set3, SIGUSR2);
 	pthread_sigmask(SIG_BLOCK, &set3, NULL);
 	
-	int i = 0; //times1 counter
-	int t = 0; //times2 counter
+	int i = 0; //times1 array counter
+	int t = 0; //times2 array counter
 	int s;
-	int which;
 
 	int sig1fortime = 0;
 	int sig2fortime = 0;
@@ -223,8 +223,8 @@ void* reporter() {
 					avg2+= diff2;
 				}
 				
-				avg1 = avg1 / sig1fortime;
 				printf("sig1fortime = %d, sig2fortime = %d\n", sig1fortime, sig2fortime);
+				avg1 = avg1 / sig1fortime;
 				printf("avg1 = %d microseconds\n", avg1);
 				avg2 = avg2 / sig2fortime;
 				printf("avg2 = %d microseconds\n", avg2);
