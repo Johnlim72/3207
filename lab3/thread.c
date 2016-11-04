@@ -181,11 +181,13 @@ void* reporter() {
 	int sig2fortime = 0;
 
 	int z = 0;
+	FILE *fp = fopen("test_results.csv", "a"); 
+	fprintf(fp, "Reporter Signals, TIME STAMP, SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2");
 
 	while (1) {
 		if ((s = sigtimedwait(&set3, NULL, &timeout)) > 0) {
 			gettimeofday(&tv1, NULL);
-			printf("time %d = %d microsec\n", z, ((unsigned int)tv1.tv_sec * 1000000) + (unsigned int)tv1.tv_usec);
+		//	printf("time %d = %d microsec\n\n", z, ((unsigned int)tv1.tv_sec * 1000000) + (unsigned int)tv1.tv_usec);
 			z++;
 
 			if (s == 10) {
@@ -202,9 +204,8 @@ void* reporter() {
 			reporter_sigs++;
 			pthread_mutex_unlock(&sem6);
 		
-			printf("sig1_sent = %d, sig2_sent = %d\n", sig1_sent, sig2_sent);
-			printf("sig1_rec = %d, sig2_rec = %d\n", sig1_rec, sig2_rec);	
-			printf("reporter_sigs = %d\n", reporter_sigs);
+			//printf("sig1_sent = %d, sig2_sent = %d\n", sig1_sent, sig2_sent);
+		//	printf("sig1_rec = %d, sig2_rec = %d\n", sig1_rec, sig2_rec);	
 			
 			if (reporter_sigs % 10 == 0) {
 				unsigned int avg1 = 0; //avg for sigusr1
@@ -213,22 +214,33 @@ void* reporter() {
 				unsigned int diff2; //time difference for sigusr2
 				
 				int j;
-				for (j =0; j < sig1fortime-1; j++) {
-					diff1 = times1[j+1] - times1[j];
-					avg1+= diff1;
-				}
+				if (sig1fortime > 1) {
+					for (j =0; j < sig1fortime-1; j++) {
+						diff1 = times1[j+1] - times1[j];
+						avg1+= diff1;
+					}
+					avg1 = avg1 / sig1fortime;
+				} else if (sig1fortime <= 1) {
+					diff1 = 0;
+					avg1 = 0;
+				} 
 				int k;
-				for (k =0; k < sig2fortime-1; k++) {
-					diff2 = times2[k+1] - times2[k];
-					avg2+= diff2;
-				}
-				
-				printf("sig1fortime = %d, sig2fortime = %d\n", sig1fortime, sig2fortime);
-				avg1 = avg1 / sig1fortime;
-				printf("avg1 = %d microseconds\n", avg1);
-				avg2 = avg2 / sig2fortime;
-				printf("avg2 = %d microseconds\n", avg2);
+				if (sig2fortime > 1) {
+					for (k =0; k < sig2fortime-1; k++) {
+						diff2 = times2[k+1] - times2[k];
+						avg2+= diff2;
+					}
+					avg2 = avg2 / sig2fortime;
+				} else if (sig2fortime <= 1 ) {
+					diff2 = 0;
+					avg2 = 0;
+				} 
 
+			//	printf("\nsig1fortime = %d, sig2fortime = %d\n", sig1fortime, sig2fortime);
+			//	printf("avg1 = %d microseconds\n", avg1);
+			//	printf("avg2 = %d microseconds\n", avg2);
+				fprintf(fp, "%d, %d, %d, %d, %d, %d", reporter_sigs, ((unsigned int)tv1.tv_sec * 1000000 + (unsigned int) tv1.tv_usec), sig1fortime, avg1, sig2fortime, avg2);				
+				
 				i = 0;	
 				t = 0;	  
 				sig1fortime = 0;
@@ -239,6 +251,8 @@ void* reporter() {
 			}
 
 		} else if (s == -1) {
+			printf("reporter sigs = %d\n", reporter_sigs);
+			fclose(fp);	
 			break;
 		}
 	}
