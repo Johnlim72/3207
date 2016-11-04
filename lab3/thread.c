@@ -182,7 +182,7 @@ void* reporter() {
 
 	int z = 0;
 	FILE *fp = fopen("test_results.csv", "a"); 
-	fprintf(fp, "Reporter Signals, TIME STAMP, SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2");
+	fprintf(fp, "Reporter Signals, TIME STAMP, SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2\n");
 
 	while (1) {
 		if ((s = sigtimedwait(&set3, NULL, &timeout)) > 0) {
@@ -239,7 +239,7 @@ void* reporter() {
 			//	printf("\nsig1fortime = %d, sig2fortime = %d\n", sig1fortime, sig2fortime);
 			//	printf("avg1 = %d microseconds\n", avg1);
 			//	printf("avg2 = %d microseconds\n", avg2);
-				fprintf(fp, "%d, %d, %d, %d, %d, %d", reporter_sigs, ((unsigned int)tv1.tv_sec * 1000000 + (unsigned int) tv1.tv_usec), sig1fortime, avg1, sig2fortime, avg2);				
+				fprintf(fp, "%d, %d, %d, %d, %d, %d\n", reporter_sigs, ((unsigned int)tv1.tv_sec * 1000000 + (unsigned int) tv1.tv_usec), sig1fortime, avg1, sig2fortime, avg2);				
 				
 				i = 0;	
 				t = 0;	  
