@@ -181,7 +181,7 @@ void* reporter() {
 	int sig2fortime = 0;
 
 	int z = 0;
-	FILE *fp = fopen("test_results.csv", "a"); 
+	FILE *fp = fopen("test_results.csv", "w"); 
 	fprintf(fp, "Reporter Signals, TIME STAMP, SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2\n");
 
 	while (1) {
