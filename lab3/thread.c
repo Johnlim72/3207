@@ -73,7 +73,7 @@ int main() {
 
 //Sends an amount of signals to handler and reporter threads.
 void* generator() {
-	while(total_signal_count < 1000) { 
+	while(total_signal_count < 10000) { 
 		int r = (rand() % 2) +1; //Chooses random number, either 1 or 2.
 		if (r == 1) { //If random number equals 1, SIGUSR1 will be sent to handler1 threads.
 			int i;
