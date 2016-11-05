@@ -31,7 +31,7 @@ int main() {
 		if (pthread_create(&threads[i], NULL, handler1, NULL) != 0) {
 			printf("error pthread_create handler1\n");
 		}
-		printf("created handler1 threads #%d\n", i);
+		printf("Created handler1 threads #%d\n", i);
 	}
 
 	//Creates 2 threads for handler2.
@@ -39,14 +39,14 @@ int main() {
 		if (pthread_create(&threads[i], NULL, handler2, NULL) != 0) {
 			printf("error pthread_create handler2\n");
 		}
-		printf("created handler2 threads #%d\n", i);
+		printf("Created handler2 threads #%d\n", i);
 	}
 
 	//Creates a thread for reporter.
 	if (pthread_create(&threads[7], NULL, reporter, NULL) != 0) {
 		printf("error pthread_create reporter\n");
 	}
-	printf("created reporter threads\n");
+	printf("Created reporter threads\n");
 	
 	sleep(1);
 
@@ -57,7 +57,7 @@ int main() {
 		if (pthread_create(&threads[i], NULL, generator, NULL) != 0) {
 			printf("error pthread_create generator\n");	
 		}
-		printf("created generator thread #%d\n", i);
+		printf("Created generator thread #%d\n", i);
 	}
 
 	//Waits for each thread to finish.
@@ -73,7 +73,7 @@ int main() {
 
 //Sends an amount of signals to handler and reporter threads.
 void* generator() {
-	while(total_signal_count < 4000) { 
+	while(total_signal_count < 10000) { 
 		int r = (rand() % 2) +1; //Chooses random number, either 1 or 2.
 		if (r == 1) { //If random number equals 1, SIGUSR1 will be sent to handler1 threads.
 			int i;
@@ -164,31 +164,26 @@ void* reporter() {
 	timeout.tv_sec = 3;
 	timeout.tv_nsec = 0;
 	
+	FILE *fp = fopen("test_results.csv", "w"); 
+	fprintf(fp, "Reporter Signals, TIME(Sec), TIME(Microsec), SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2\n");
+	
 	struct timeval tv1;
 	unsigned int times1[10]; //Time stamps for SIGUSR1.	
 	unsigned int times2[10]; //Time stamps for SIGUSR2.
+	int i = 0; //times1 array counter
+	int t = 0; //times2 array counter
+	int sig1fortime = 0;
+	int sig2fortime = 0;
 
 	sigemptyset(&set3);
 	sigaddset(&set3, SIGUSR1);
 	sigaddset(&set3, SIGUSR2);
 	pthread_sigmask(SIG_BLOCK, &set3, NULL);
 	
-	int i = 0; //times1 array counter
-	int t = 0; //times2 array counter
 	int s;
-
-	int sig1fortime = 0;
-	int sig2fortime = 0;
-
-	int z = 0;
-	FILE *fp = fopen("test_results.csv", "w"); 
-	fprintf(fp, "Reporter Signals, TIME(Sec), TIME(Microsec), SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2\n");
-
 	while (1) {
 		if ((s = sigtimedwait(&set3, NULL, &timeout)) > 0) {
 			gettimeofday(&tv1, NULL);
-		//	printf("time %d = %d microsec\n\n", z, ((unsigned int)tv1.tv_sec * 1000000) + (unsigned int)tv1.tv_usec);
-			z++;
 
 			if (s == 10) {
 				times1[i] = ((unsigned int)tv1.tv_sec * 1000000) + (unsigned int) tv1.tv_usec;
@@ -203,10 +198,7 @@ void* reporter() {
 			pthread_mutex_lock(&sem6);
 			reporter_sigs++;
 			pthread_mutex_unlock(&sem6);
-		
-			//printf("sig1_sent = %d, sig2_sent = %d\n", sig1_sent, sig2_sent);
-		//	printf("sig1_rec = %d, sig2_rec = %d\n", sig1_rec, sig2_rec);	
-			
+					
 			if (reporter_sigs % 10 == 0) {
 				unsigned int avg1 = 0; //avg for sigusr1
 				unsigned int avg2 = 0; //avg for sigusr2
@@ -236,9 +228,6 @@ void* reporter() {
 					avg2 = 0;
 				} 
 
-			//	printf("\nsig1fortime = %d, sig2fortime = %d\n", sig1fortime, sig2fortime);
-			//	printf("avg1 = %d microseconds\n", avg1);
-			//	printf("avg2 = %d microseconds\n", avg2);
 				fprintf(fp, "%d, %d, %d, %d, %d, %d, %d\n", reporter_sigs, (int)tv1.tv_sec, (int)tv1.tv_usec, sig1fortime, avg1, sig2fortime, avg2);				
 				i = 0;	
 				t = 0;	  
@@ -246,9 +235,8 @@ void* reporter() {
 				sig2fortime = 0;
 				avg1 = 0;
 				avg2 = 0;
-				
+			
 			}
-
 		} else if (s == -1) {
 			printf("reporter sigs = %d\n", reporter_sigs);
 			fclose(fp);	
@@ -256,5 +244,3 @@ void* reporter() {
 		}
 	}
 }
-
-
