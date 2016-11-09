@@ -73,7 +73,7 @@ int main() {
 
 //Sends an amount of signals to handler and reporter threads.
 void* generator() {
-	while(total_signal_count < 10000) { 
+	while(total_signal_count < 20000) { 
 		int r = (rand() % 2) +1; //Chooses random number, either 1 or 2.
 		if (r == 1) { //If random number equals 1, SIGUSR1 will be sent to handler1 threads.
 			int i;
@@ -164,6 +164,7 @@ void* reporter() {
 	timeout.tv_sec = 3;
 	timeout.tv_nsec = 0;
 	
+	//Reports to .csv file
 	FILE *fp = fopen("test_results.csv", "w"); 
 	fprintf(fp, "Reporter Signals, TIME(Sec), TIME(Microsec), SIGUSR1 Count, AVG TIME 1, SIGUSR2 Count, AVG TIME 2\n");
 	
@@ -196,15 +197,16 @@ void* reporter() {
 			}			
 	
 			pthread_mutex_lock(&sem6);
-			reporter_sigs++;
+			reporter_sigs++; //increments total signals received by reporter thread.
 			pthread_mutex_unlock(&sem6);
 					
 			if (reporter_sigs % 10 == 0) {
-				unsigned int avg1 = 0; //avg for sigusr1
-				unsigned int avg2 = 0; //avg for sigusr2
+				unsigned int avg1 = 0; //average for sigusr1
+				unsigned int avg2 = 0; //average for sigusr2
 				unsigned int diff1; //time difference for sigusr1
 				unsigned int diff2; //time difference for sigusr2
 				
+				//Calculates average time in between signals sent for each signal type
 				int j;
 				if (sig1fortime > 1) {
 					for (j =0; j < sig1fortime-1; j++) {
@@ -228,6 +230,7 @@ void* reporter() {
 					avg2 = 0;
 				} 
 
+				//Reports result for the iteration to .csv file
 				fprintf(fp, "%d, %d, %d, %d, %d, %d, %d\n", reporter_sigs, (int)tv1.tv_sec, (int)tv1.tv_usec, sig1fortime, avg1, sig2fortime, avg2);				
 				i = 0;	
 				t = 0;	  

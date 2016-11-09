@@ -1,0 +1,12 @@
+ls
+help
+pause
+ls -a > a.txt
+wc < in.txt > a2.txt
+echo $PATH > a5.txt
+ls &
+environ >> a3.txt
+dir . >> a4.txt
+cd ..
+dir .
+ls | wc

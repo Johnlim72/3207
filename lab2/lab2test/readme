@@ -1,0 +1,161 @@
+Manual for myshell
+---------------------------------------------------------------
+
+Description:
+
+	-myshell is a shell program which each interactive user
+	can send commands to the OS and by which the OS can
+	respond to the user.
+
+---------------------------------------------------------------
+
+How to execute myshell for user input:
+
+	./myshell
+
+How to execute myshell for batchfile:
+
+	./myshell batchfile
+
+	-The batchfile would include a list of commands to be executed. 
+	-The name of the batchfile has to be spelled 'batchfile'.
+	-The shell will quit after executing all commands in batchfile.
+	
+---------------------------------------------------------------
+
+After executing myshell for user input:
+		
+	-User will be prompted to type in a command followed by
+	pressing enter ('\n'). The prompt can look something
+	like:
+		/home/cis-linux2/usr/directory>
+
+	-User can type in commands that are found in /bin.
+	-User can also type in commands that are internal commands:
+		1.) cd <directory>
+		2.) clr
+		3.) dir <directory>
+		4.) environ
+		5.) echo <comment>
+		6.) help
+		7.) pause
+		8.) quit
+	-The user can either execute the command by pressing enter,
+	execute the command in the background by including '&' at the 
+	end of the command line, execute the command with input/output
+	redirection by including '<', '>' or '>>' symbols with the files
+	he/she wants to redirect to, or execute the command with pipe
+	redirection by including the '|' symbol followed by another
+	command.
+
+---------------------------------------------------------------
+
+Internal Commands:
+
+1.) cd <directory>
+	
+	-Changes the current directory to <directory>.
+	-If no directory is provided, the directory will not 
+	be changed
+
+	ex: cd .. 
+	
+	-Changes directory to the current directory's parent directory.
+
+2.) clr
+	
+	-Clears the screen. Prompt appears at the top of screen.
+	
+3.) dir <directory>
+	
+	-Lists the contents of directory <directory>.
+	-Needs a valid path in order to be executed correctly.
+
+	ex: dir /home/TU/tuf12345/labs/lab1
+
+4.) environ
+
+	-Lists all the environment strings.
+
+5.) echo <comment>
+	
+	-Displays <comment> on the display followed by a new line.
+
+	ex: echo The following path is $PATH
+
+6.) help
+	
+	-Displays a simpler user manual for myshell.
+
+7.) pause
+	
+	-Pauses the operation of the shell until 'Enter' key is pressed.
+
+8.) quit
+	
+	-Quits the shell.
+
+---------------------------------------------------------------
+
+Types of Execution
+
+1.) Background
+
+	ex: ls &
+
+	-Executing a command in the background allows the user to execute
+	other commands while the command in the background still executes.
+
+2.) Input Redirection
+
+	ex: wc < input.txt
+
+	-Executing a command with input redirection will take the file that 
+	follows the '<' symbol as an argument for the command to be executed.
+	-In this example, when the user executes this command, the output
+	will be shown to the screen the word, line, and character count of
+	the strings/characters/lines in input.txt
+
+3.) Output Redirection
+	
+	ex: ls > out.txt
+
+	-Executing a command with output redirection will take the file that
+	follows the '>' symbol as an argument for the command to be executed.
+	The file will first be cleared and then the output will be written to
+	the file.
+	-In this example, when the the user executes this command, if he/she
+	opens 'out.txt', the output for the 'ls' command will be shown in the file.
+	
+	ex: ls >> out.txt
+	
+	-Executing a command with two output redirection symbols (>>) will take
+	the file that follows the '>>' symbols as an argument for the command to
+	be executed. The file will not be cleared, but instead, the output of 'ls' 
+	will be appended to the contents already written inside the file, if there
+	is any.
+
+4.) Input and Output Redirection
+
+	ex: wc < input.txt > out.txt
+	
+	-Executing a command with both input and output redirection will take the
+	file that follows the '<' symbols as the input argument for the command to
+	be executed. The file that follows the '>' symbol will be treated as the output
+	file.
+	-In this example, the command 'wc' will take in 'input.txt' as an input argument,
+	execute, and the output of the execution will be shown in 'out.txt'.
+
+5.) Pipe Redirection
+
+	ex: ls | wc
+
+	-Executing a command with the '|' symbol will allow the inputs and outputs of commands
+	to be sent to a pipe. This allows two processes to send information to eachother. The
+	command that is to the left of the '|' will be treated as the command that will write to
+	the pipe. The command that follows the '|' symbol will be treated as the command that
+	will read from the pipe then treat the read contents as input and then execute the command
+	using the input as argument.
+	-In this example, the command 'ls' will execute and will send the output to the pipe. The
+	command 'wc' will then read from the pipe and execute using the input as argument and send
+	it's information to the screen.

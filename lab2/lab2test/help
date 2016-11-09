@@ -1,0 +1,9 @@
+cd <directory>
+clr
+dir <directory>
+environ
+echo <comment>
+help
+pause
+quit
+commands from /bin can be used.

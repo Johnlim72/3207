@@ -1,0 +1,11 @@
+.
+..
+a2.txt
+a.txt
+ExampleCodes
+help
+lab2test
+.nfs00000001c08581eb00000039
+.nfs00000001c168d37900000038
+pseudo.txt
+readme
