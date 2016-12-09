@@ -1,1 +1,1 @@
-fix search_parent_dir
+fix the search when inside root directory. count shouldnt be compared to 512, but the last byte of the root since the root directorys size is different from any other directory
