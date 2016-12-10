@@ -19,25 +19,32 @@ int where_root = 12801; //10 blocks for Root directory 12802
 int where_data = 17921; //rest of the blocks 17923
 
 void metadata();
-void write_entry(int offset, int free, char filename[], char ext[], int attr, int hour, int min, int day, int month, int year, int open, int start, int size);
-void init_fat(int offset);
-int locate_first_empty_fat();
 int jcreate(char path_string[]);
 int jopen(char path_string[]);
+int jclose(char path_string[]);
 int jdelete(char path_string[]);
 int jwrite(char path_string[], char buffer[]);
 char* jread(char path_string[], int size, char buffer[]);
-int jclose(char path_string[]);
+
+void write_entry(int offset, int free, char filename[], char ext[], int attr, int hour, int min, int day, int month, int year, int open, int start, int size);
+int go_first_empty(int offset);
+int look_for_same(char path_string[]);
+int update(char path_string[], int length);
+
+void edit_fat(int offset, int new_fat);
+int locate_first_empty_fat();
+void init_fat(int offset);
 void delete_fat(int offset);
 void format(int offset);
-char* get_last_pathname(char path_string[]);
-void edit_fat(int offset, int new_fat);
-int update(char path_string[], int length);
+
+int print_dir(char path_string[]);
+int search_dir(char path_string[]);
 int search_parent_dir(char path_string[]);
 int search_entry(char path_string[]);
+
+char* get_last_pathname(char path_string[]);
 char* get_entry_name(int offset);
 int get_start(int offset);
-int go_first_empty(int offset);
 int get_open(int offset);
 int get_attr(int offset);
 int get_size(int offset);
@@ -64,13 +71,19 @@ int main() {
 	jopen("/root/dir1/file4.txt");
 
 	char* buffer2 = "hello my name is john lim i am a computer science major, monil bid is sitting next to me, next to him is jae kim, i am in operating systems class right now hello computer i am typing on a keyboard, jae is working on 2166, i just spent fucking 700 dollars today to go to electric forest in june everyday i spend my time dark runescape willow yew oak copper tin rune dragon green hide hai dang mac miller sup yo lmao ello guva shut the fuck up yo lmaoooooo ayyyyyyyyyyyyyyy firetruck watergun flamethrower japan korea crazy bitch shes so mean gorilla monkey giraffe af addison 2033 david dobor hi my name is john again lol im going to play basketball later and fucking merk peoples ankles lol like kyrie irving on the cavaliers fuck KD fuck the warriors lmaooooo ight yo i need to chill out lowkey im fucking smacked ight lets fucking get this quiz going ya heard lmao hoe shut the fuck up i got way too much on my mental SUP yo i just want this semester to be over like im so over it i need to just chilll and do nothing for a month i dont wanna do anything anymore this lab is crazy hard and long i cant believe im almost done with it lol end ";	
+
 	jwrite("/root/dir1/file4.txt", buffer2); 
 
 	char buffer3[10000];
 		
 	jread("/root/dir1/file4.txt", 600, buffer3);	
+	printf("buffer3: %s\n", buffer3);
 	
-	printf("buffer3: %s", buffer3);
+	jdelete("/root/dir1/file4.txt");
+	jcreate("/root/dir1/file7.txt");
+
+	int offset = print_dir("/root/dir1");
+	
 	return 1;
 }
 
@@ -95,7 +108,72 @@ void metadata() {
 	fwrite(&size_fat_entry, sizeof(int), 1, fp);
 }
 
-//switches the open argument to 1 for allowance of reading and writing
+//Creates the file/directory (given the full path including the file/directory).
+int jcreate(char path_string[]) {
+	//Get the byte offset of the parent directory of the file/directory to be created.
+	int offset = search_parent_dir(path_string);
+	
+	//Check the directory if the file/subdirectory is already created.
+	int same = look_for_same(path_string);
+	if (same == 1) {
+		return -1;
+	}
+	
+	//Get the byte offset of the first empty entry in the directory.
+	int first_empty = go_first_empty(offset);
+
+	//Get the filename (filename length can't be greater than 8).
+	char filename[8];
+	char* last_path = get_last_pathname(path_string);
+	char* s = ".";
+	char* word;	
+	word = strtok(last_path, s);
+	strcpy(filename, word);	
+	if (strlen(filename) > 8) {
+		return -1;
+	}
+
+	//Get the extension (extension length can't be greater than 3).
+	word = strtok(NULL, s);
+	char ext[3];	
+	int attr;
+	if (word != NULL) {
+		strcpy(ext, word);
+		attr = 1;
+	} else {
+		strcpy(ext, " ");
+		attr = 2;
+	}
+	if (strlen(ext) > 3) {
+		return -1;
+	}
+
+	//Get the time and date.
+	time_t now;
+	struct tm *now_tm;	
+	now = time(NULL);
+	now_tm = localtime(&now);
+	int hour = now_tm->tm_hour;
+	int min = now_tm->tm_min;
+	int day = now_tm->tm_mday;
+	int month = (now_tm->tm_mon) + 1;
+	int year = ((now_tm->tm_year) - 100);
+
+	//Find the byte offsets for the first empty FAT entry and data block.
+	int first_fat = locate_first_empty_fat();
+	int start = (((first_fat - 513)/3) * 512)+17921;
+	
+	//Initialize the FAT entry to -1 and size to 0.
+	init_fat(first_fat);	
+	int size = 0;
+	
+	//Write the directory entry for the file/directory.
+	write_entry(first_empty, 1, filename, ext, attr, hour, min, day, month, year, 0, start, size);		
+	
+	return 1;
+}
+
+//Opens the file (Given the full path including file).
 int jopen(char path_string[]) {
 	int open = 1;
 	int offset = search_entry(path_string);
@@ -104,6 +182,7 @@ int jopen(char path_string[]) {
 	return 1;
 }
 
+//Closes the file (Given the full path including file).
 int jclose(char path_string[]) {
 	int close = 0x00;
 	int offset = search_entry(path_string);
@@ -112,8 +191,45 @@ int jclose(char path_string[]) {
 	return 1;
 }
 
+//Deletes the file (Given the full path including file).
 int jdelete(char path_string[]) {
+	//Get the byte offset for the file's FAT entry and data block.
+	int offset = search_entry(path_string); 
+	int curr_block = get_start(offset);
+	int curr_fat = (((curr_block - 17921)/512)*3) + 513;
+	fseek(fp, curr_fat, SEEK_SET);
+
+	//delete after first fat entry and first block
+	int next_fat = 0;
+	fread(&next_fat, 3, 1, fp);
+	int neg_one = 16777215;
+
+	while (next_fat != neg_one) {
+		curr_fat = next_fat;
+		fseek(fp, curr_fat, SEEK_SET);	
+		fread(&next_fat, 3, 1, fp);
+		curr_block = (((curr_fat - 513)/3) * 512)+17921;
+		format(curr_block);
+		delete_fat(curr_fat);
+	}
+
+	//delete first fat entry and first block
+	offset= search_entry(path_string);
+	curr_block = get_start(offset);
+	curr_fat = (((curr_block - 17921)/512)*3) + 513;
 	
+	delete_fat(curr_fat);
+	format(curr_block);
+
+	offset = search_entry(path_string);
+	fseek(fp, offset, SEEK_SET);
+	int i = 0;
+	int zero = 0x00;
+	while (i < 32) {
+		fwrite(&zero, 1, 1, fp);
+		i++;
+	}
+	return 1;
 }
 
 char* jread(char path_string[], int size, char buffer[]) {
@@ -177,7 +293,7 @@ int jwrite(char path_string[], char buffer[]) {
 		curr_fat = next_fat;
 		fseek(fp, curr_fat, SEEK_SET);	
 		fread(&next_fat, 3, 1, fp);
-		curr_block = (((next_fat - 513)/3) * 512)+17921;
+		curr_block = (((curr_fat - 513)/3) * 512)+17921;
 		format(curr_block);
 		delete_fat(curr_fat);
 	}
@@ -215,7 +331,6 @@ int jwrite(char path_string[], char buffer[]) {
 	update(path_string, strlen(buffer));
 	return 1;
 }
- 
 
 //given a offset for a data block
 void format(int offset) {
@@ -242,6 +357,67 @@ void edit_fat(int offset, int new_fat) {
 	fwrite(&fat, 3, 1, fp);	
 }
 
+int search_dir(char path_string[]) {
+	int offset = 12801;
+	if (strcmp(path_string, "/root") == 0) {
+		return offset;
+	}
+
+	int i;
+	int slash_count = 0;
+	for (i = 0; i < strlen(path_string); i++) {
+		if (path_string[i] == '/') {
+			slash_count++;
+		}
+	}
+
+	char var[strlen(path_string)];
+	strcpy(var, path_string);	
+
+	char* word;
+	char* s = "/";
+	word = strtok(var, s);
+	word = strtok(NULL, s);
+	int j = 1;
+	int count = 0;
+	while (j < slash_count) {
+		count = 0;
+		while (count < 512) { //search directory for file/dir
+			if (strcmp(get_entry_name(offset), word) == 0) {
+				break;
+			}
+			offset+=32;		
+			count+=32;
+		}
+		if (count == 512) {
+			return -2;
+		}
+		offset = get_start(offset);
+		word=strtok(NULL,s);
+		j++;
+	}
+	return offset;
+}
+int print_dir(char path_string[]) {
+	int offset = search_dir(path_string);
+
+	int j = 1;
+	char* word;
+	while (j <= 16) {
+		word = get_entry_name(offset);
+		if (strcmp(error, word) != 0) {
+			printf("%s ", word);
+		}
+		int start = get_start(offset);
+		if (start != -1) {
+			printf("%d\n", start); 
+		}
+		offset+=32;
+		j++;
+	}
+	return 1;
+}
+
 int search_parent_dir(char path_string[]) {
 	int offset = 12801;
 
@@ -258,10 +434,6 @@ int search_parent_dir(char path_string[]) {
 	}
 	slash_count--;
 	
-	if (slash_count == 1) {
-		return offset;
-	}
-
 	char var[strlen(path_string)];
 	strcpy(var, path_string);	
 
@@ -291,61 +463,29 @@ int search_parent_dir(char path_string[]) {
 	return offset;
 }
 
-//creates file or directory from given path
-//ex: jcreate("/root/dir1/file.txt") 
-int jcreate(char path_string[]) {
+
+int look_for_same(char path_string[]) {
 	int offset = search_parent_dir(path_string);
-	printf("offset for parent dir: %d\n", offset);
-	int first_empty = go_first_empty(offset);
+	char* last_path = get_last_pathname(path_string);
 
 	char filename[8];
-	char* last_path = get_last_pathname(path_string);
-	printf("last_path name: %s\n", last_path);
-
 	char* s = ".";
 	char* word;	
 	word = strtok(last_path, s);
 	strcpy(filename, word);
-	printf("filename: %s\n", filename);	
-
-	word = strtok(NULL, s);
-	char ext[3];	
-	int attr;
-	if (word != NULL) {
-		strcpy(ext, word);
-		attr = 1;
-	} else {
-		strcpy(ext, " ");
-		attr = 2;
-	}
-	printf("ext: %s\n", ext);
-
-	time_t now;
-	struct tm *now_tm;	
-	now = time(NULL);
-	now_tm = localtime(&now);
-	int hour = now_tm->tm_hour;
-	int min = now_tm->tm_min;
-	int day = now_tm->tm_mday;
-	int month = (now_tm->tm_mon) + 1;
-	int year = ((now_tm->tm_year) - 100);
-
-	//look for first empty block
-	int first_fat = locate_first_empty_fat();
-	int start = (((first_fat - 513)/3) * 512)+17921;
 	
-	printf("start of file/dir: %d\n", start);
-	
-	init_fat(first_fat);	
-	int size = 0;
-
-	if (attr == 1) {
-		write_entry(first_empty, 1, filename, ext, attr, hour, min, day, month, year, 0, start, size);
-	} else if (attr == 2) {
-		write_entry(first_empty, 1, filename, " ", attr, hour, min, day, month, year, 0, start, size);		
+	int count = 0;
+	while (count < 512) {
+		if (strcmp(get_entry_name(offset), filename) == 0) {
+			return 1;
+		}
+		count+=32;
+		offset+=32;
 	}
-	printf("success for %s\n\n", filename);
-	return 1;
+	if (count == 512) {
+		return -1;
+	}
+	return -1;
 }
 
 //looks at the last path name in the path string
